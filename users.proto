@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package users;
+
+// Manages storage and authentication of user accounts.
+service Users {
+  // Creates a new user account. Fails with ALREADY_EXISTS if the username
+  // is already taken.
+  rpc CreateUser(UserCredentials) returns (User);
+
+  // Verifies a username/password pair. Fails with UNAUTHENTICATED if the
+  // credentials are invalid.
+  rpc Login(UserCredentials) returns (User);
+}
+
+message UserCredentials {
+  string username = 1;
+  string password = 2;
+}
+
+message User {
+  string id = 1;
+  string username = 2;
+  int64 created_at = 3;
+}

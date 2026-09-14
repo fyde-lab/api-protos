@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package changelog;
+
+// Streams write events recorded against documents.
+service Changelog {
+  // Streams a ChangelogEvent every time a new entry is recorded, starting
+  // from the moment the call is made (it does not replay past entries).
+  rpc WatchEvents(WatchEventsRequest) returns (stream ChangelogEvent);
+
+  // Lists entries recorded after `offset`, oldest first, one page at a time.
+  // An `offset` of 0 means "from the beginning of the changelog". A nonzero
+  // `offset` must correspond to an existing entry, or the call fails with
+  // NOT_FOUND.
+  rpc ListEventsSince(ListEventsSinceRequest) returns (ListEventsSinceResponse);
+}
+
+message WatchEventsRequest {}
+
+message ListEventsSinceRequest {
+  int64 offset = 1;
+  // Maximum number of entries to return. 0 selects a server-side default.
+  int32 limit = 2;
+}
+
+message ListEventsSinceResponse {
+  repeated ChangelogEvent events = 1;
+  // Offset to pass as `offset` on the next call to keep paginating. Equal to
+  // the last returned event's offset, or to the request's `offset` if this
+  // page was empty.
+  int64 next_offset = 2;
+}
+
+message ChangelogEvent {
+  int64 offset = 1;
+  string document_id = 2;
+  EventType event_type = 3;
+  int64 created_at = 4;
+}
+
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_CREATED = 1;
+  EVENT_TYPE_UPDATED = 2;
+  EVENT_TYPE_DELETED = 3;
+}

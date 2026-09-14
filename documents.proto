@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package documents;
+
+// Manages storage and retrieval of files.
+service Documents {
+  // Uploads a new document and returns its generated id.
+  rpc UploadDocument(UploadDocumentRequest) returns (UploadDocumentResponse);
+
+  // Fetches a document's content by id. Fails with NOT_FOUND if it doesn't
+  // exist.
+  rpc FetchDocument(FetchDocumentRequest) returns (FetchDocumentResponse);
+}
+
+message UploadDocumentRequest {
+  bytes content = 1;
+  // The data encryption key used to encrypt `content` and `metadatas`.
+  bytes dek = 2;
+  // Encrypted, opaque document metadata (e.g. content type, checksum).
+  bytes metadatas = 3;
+}
+
+message UploadDocumentResponse {
+  string id = 1;
+}
+
+message FetchDocumentRequest {
+  string id = 1;
+}
+
+message FetchDocumentResponse {
+  EncryptedDocument document = 1;
+}
+
+message EncryptedDocument {
+  string id = 1;
+  bytes content = 2;
+  // The data encryption key used to encrypt `content` and `metadatas`.
+  bytes dek = 3;
+  // Encrypted, opaque document metadata (e.g. content type, checksum).
+  bytes metadatas = 4;
+}
