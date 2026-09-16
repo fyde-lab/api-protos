@@ -10,6 +10,11 @@ service Documents {
   // Fetches a document's content by id. Fails with NOT_FOUND if it doesn't
   // exist.
   rpc FetchDocument(FetchDocumentRequest) returns (FetchDocumentResponse);
+
+  // Fetches multiple documents' content by id in a single call. Ids that
+  // don't exist are silently omitted from the response, so the result may
+  // contain fewer documents than ids requested.
+  rpc FetchDocuments(FetchDocumentsRequest) returns (FetchDocumentsResponse);
 }
 
 message UploadDocumentRequest {
@@ -30,6 +35,14 @@ message FetchDocumentRequest {
 
 message FetchDocumentResponse {
   EncryptedDocument document = 1;
+}
+
+message FetchDocumentsRequest {
+  repeated string ids = 1;
+}
+
+message FetchDocumentsResponse {
+  repeated EncryptedDocument documents = 1;
 }
 
 message EncryptedDocument {
