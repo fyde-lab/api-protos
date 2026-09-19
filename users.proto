@@ -9,9 +9,9 @@ service Users {
   rpc CreateUser(UserCredentials) returns (User);
 
   // Verifies a username/password pair and opens a new session for the
-  // device named `device_name`. Fails with UNAUTHENTICATED if the
-  // credentials are invalid.
-  rpc Login(LoginRequest) returns (LoginResponse);
+  // calling device (named from the call's `user-agent` metadata). Fails
+  // with UNAUTHENTICATED if the credentials are invalid.
+  rpc Login(UserCredentials) returns (LoginResponse);
 
   // Closes the session identified by the bearer token carried in the
   // call's `authorization` metadata. Fails with UNAUTHENTICATED if it
@@ -22,14 +22,6 @@ service Users {
 message UserCredentials {
   string username = 1;
   string password = 2;
-}
-
-message LoginRequest {
-  string username = 1;
-  string password = 2;
-  // A user-facing label for the device opening this session, e.g.
-  // "Pierre's iPhone".
-  string device_name = 3;
 }
 
 message LoginResponse {
