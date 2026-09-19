@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package sessions;
+
+// A session represents one device's authenticated connection to a user
+// account, identified by an opaque token the device presents on subsequent
+// requests in place of its username/password.
+service Sessions {
+  // Creates a new session for a user on a named device, returning it with a
+  // freshly generated authentication token.
+  rpc CreateSession(CreateSessionRequest) returns (Session);
+
+  // Fetches the session matching an authentication token. Fails with
+  // NOT_FOUND if no such session exists (e.g. it was revoked).
+  rpc FetchSessionByToken(FetchSessionByTokenRequest) returns (Session);
+
+  // Revokes (logs out) the session matching an authentication token. Fails
+  // with NOT_FOUND if no such session exists.
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+}
+
+message CreateSessionRequest {
+  string user_id = 1;
+  // A user-facing label for the device, e.g. "Pierre's iPhone".
+  string name = 2;
+}
+
+message FetchSessionByTokenRequest {
+  string token = 1;
+}
+
+message RevokeSessionRequest {
+  string token = 1;
+}
+
+message RevokeSessionResponse {}
+
+message Session {
+  string id = 1;
+  string user_id = 2;
+  string name = 3;
+  string token = 4;
+  int64 created_at = 5;
+}
