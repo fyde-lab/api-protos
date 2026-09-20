@@ -4,13 +4,14 @@ package users;
 
 // Manages storage and authentication of user accounts.
 service Users {
-  // Creates a new user account. Fails with ALREADY_EXISTS if the username
-  // is already taken.
-  rpc CreateUser(UserCredentials) returns (User);
+  // Creates a new user account and opens a new session for it, named
+  // `device_name`. Fails with ALREADY_EXISTS if the username is already
+  // taken.
+  rpc CreateUser(UserCredentials) returns (LoginResponse);
 
   // Verifies a username/password pair and opens a new session for the
-  // calling device (named from the call's `user-agent` metadata). Fails
-  // with UNAUTHENTICATED if the credentials are invalid.
+  // calling device, named `device_name`. Fails with UNAUTHENTICATED if the
+  // credentials are invalid.
   rpc Login(UserCredentials) returns (LoginResponse);
 
   // Closes the session identified by the bearer token carried in the
@@ -22,6 +23,10 @@ service Users {
 message UserCredentials {
   string username = 1;
   string password = 2;
+  // Human-readable name of the device opening the session (e.g. "Pierre's
+  // iPhone"), chosen by the SDK/caller. Used to open a session for both
+  // CreateUser and Login.
+  string device_name = 3;
 }
 
 message LoginResponse {
