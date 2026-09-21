@@ -30,18 +30,12 @@ message UserCredentials {
 }
 
 message LoginResponse {
-  User user = 1;
   // Opaque session token. The device must present it as a `Bearer` token
   // in the `authorization` metadata of subsequent authenticated calls.
-  string session_token = 2;
+  // This is the only information the endpoint returns: no user data.
+  string session_token = 1;
 }
 
 message LogoutRequest {}
 
 message LogoutResponse {}
-
-message User {
-  string id = 1;
-  string username = 2;
-  int64 created_at = 3;
-}
