@@ -5,13 +5,13 @@ package changelog;
 // A blind relay for client-encrypted document write events: the server only
 // ever stores and forwards opaque bytes, and cannot read them.
 service Changelog {
-  // Submits a new, already-encrypted event. Returns its assigned offset.
+  // Submits a new, already-encrypted event. Returns its assigned id.
   rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse);
 
-  // Streams every entry recorded from `offset` onward, oldest first,
-  // replaying persisted history before continuing with new entries as
-  // they're recorded (a single call covers both catch-up and live tail). An
-  // `offset` of 0 means "from the beginning of the changelog".
+  // Streams every entry recorded from `id` onward, oldest first, replaying
+  // persisted history before continuing with new entries as they're
+  // recorded (a single call covers both catch-up and live tail). An empty
+  // `id` means "from the beginning of the changelog".
   rpc ConsumeSince(ConsumeSinceRequest) returns (stream ChangelogEvent);
 }
 
@@ -23,15 +23,21 @@ message RecordEventRequest {
 }
 
 message RecordEventResponse {
-  int64 offset = 1;
+  // Canonical string form of a UUIDv7 (or another strictly time-ordered
+  // id), assigned by the server. Entries must sort by id in the same order
+  // they were recorded, so clients can rely on id order as chronological
+  // order.
+  string id = 1;
 }
 
 message ConsumeSinceRequest {
-  int64 offset = 1;
+  // Canonical string form of a UUIDv7, or empty for "from the beginning".
+  string id = 1;
 }
 
 message ChangelogEvent {
-  int64 offset = 1;
+  // See RecordEventResponse.id.
+  string id = 1;
   // See RecordEventRequest.encrypted_content.
   bytes encrypted_content = 2;
 }
