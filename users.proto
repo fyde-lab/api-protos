@@ -27,6 +27,10 @@ message UserCredentials {
   // iPhone"), chosen by the SDK/caller. Used to open a session for both
   // CreateUser and Login.
   string device_name = 3;
+  // The user's master key, encrypted client-side. Opaque to the server:
+  // only ever stored and returned as ciphertext, never inspected. Only
+  // meaningful on CreateUser; ignored by Login.
+  bytes encrypted_master_key = 4;
 }
 
 message LoginResponse {
