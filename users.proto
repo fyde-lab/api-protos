@@ -2,17 +2,47 @@ syntax = "proto3";
 
 package users;
 
-// Manages storage and authentication of user accounts.
+// Manages storage and authentication of user accounts using the OPAQUE
+// asymmetric password-authenticated key exchange protocol (RFC 9807). The
+// server never receives a plaintext password or anything equivalent to it
+// (like a traditional password hash): every `opaque_*` field below is an
+// opaque protocol message produced by an OPAQUE implementation on one side
+// and consumed by the matching implementation on the other, generated
+// against a fixed ciphersuite both sides must agree on out of band.
+// Registration and login are each a two-step exchange, split across two
+// RPCs, because OPAQUE requires a response from the other party before the
+// final message can be computed.
 service Users {
-  // Creates a new user account and opens a new session for it, named
-  // `device_name`. Fails with ALREADY_EXISTS if the username is already
-  // taken.
-  rpc CreateUser(UserCredentials) returns (LoginResponse);
+  // First step of registering a new account: the client sends an OPAQUE
+  // registration request derived from the chosen password via an oblivious
+  // PRF, and the server responds with a registration response. Stateless on
+  // the server — nothing is persisted or correlated between this call and
+  // `FinishRegistration` — and reveals nothing about whether `username` is
+  // already taken.
+  rpc StartRegistration(RegistrationStartRequest) returns (RegistrationStartResponse);
 
-  // Verifies a username/password pair and opens a new session for the
-  // calling device, named `device_name`. Fails with UNAUTHENTICATED if the
-  // credentials are invalid.
-  rpc Login(UserCredentials) returns (LoginResponse);
+  // Second and final step of registration: the client sends the OPAQUE
+  // registration record derived from the previous response, which the
+  // server persists in place of a password hash, and opens a new session
+  // for the device named `device_name`. Fails with ALREADY_EXISTS if the
+  // username is already taken.
+  rpc FinishRegistration(RegistrationFinishRequest) returns (LoginResponse);
+
+  // First step of logging in: the client sends an OPAQUE credential
+  // request, and the server responds with a credential response plus a
+  // `login_id` correlating this call with the `FinishLogin` call that
+  // completes the exchange. The response is indistinguishable whether or
+  // not `username` is registered, so this step alone can't be used to
+  // enumerate registered usernames.
+  rpc StartLogin(LoginStartRequest) returns (LoginStartResponse);
+
+  // Second and final step of logging in: the client sends the OPAQUE
+  // credential finalization message proving knowledge of the password for
+  // the exchange identified by `login_id`, and opens a new session for the
+  // device named `device_name` if it checks out. Fails with UNAUTHENTICATED
+  // if the credentials are invalid or `login_id` is unknown (e.g. already
+  // used, or `StartLogin` was never called).
+  rpc FinishLogin(LoginFinishRequest) returns (LoginResponse);
 
   // Closes the session identified by the bearer token carried in the
   // call's `authorization` metadata. Fails with UNAUTHENTICATED if it
@@ -20,17 +50,55 @@ service Users {
   rpc Logout(LogoutRequest) returns (LogoutResponse);
 }
 
-message UserCredentials {
+message RegistrationStartRequest {
   string username = 1;
-  string password = 2;
+  // Serialized OPAQUE `RegistrationRequest` message.
+  bytes opaque_request = 2;
+}
+
+message RegistrationStartResponse {
+  // Serialized OPAQUE `RegistrationResponse` message.
+  bytes opaque_response = 1;
+}
+
+message RegistrationFinishRequest {
+  string username = 1;
+  // Serialized OPAQUE `RegistrationUpload` message, which the server turns
+  // into the registration record it persists for this account in place of
+  // a password hash.
+  bytes opaque_upload = 2;
   // Human-readable name of the device opening the session (e.g. "Pierre's
-  // iPhone"), chosen by the SDK/caller. Used to open a session for both
-  // CreateUser and Login.
+  // iPhone"), chosen by the SDK/caller.
   string device_name = 3;
-  // The user's master key, encrypted client-side. Opaque to the server:
-  // only ever stored and returned as ciphertext, never inspected. Only
-  // meaningful on CreateUser; ignored by Login.
+  // The user's master key, encrypted client-side under a key derived from
+  // the OPAQUE export key. Opaque to the server: only ever stored and
+  // returned as ciphertext, never inspected.
   bytes encrypted_master_key = 4;
+}
+
+message LoginStartRequest {
+  string username = 1;
+  // Serialized OPAQUE `CredentialRequest` message.
+  bytes opaque_request = 2;
+}
+
+message LoginStartResponse {
+  // Opaque handle correlating this call with the `FinishLogin` call that
+  // completes the exchange. Carries no information about whether
+  // `username` exists.
+  string login_id = 1;
+  // Serialized OPAQUE `CredentialResponse` message.
+  bytes opaque_response = 2;
+}
+
+message LoginFinishRequest {
+  // The `login_id` returned by the matching `StartLogin` call.
+  string login_id = 1;
+  // Serialized OPAQUE `CredentialFinalization` message.
+  bytes opaque_upload = 2;
+  // Human-readable name of the device opening the session, chosen by the
+  // SDK/caller.
+  string device_name = 3;
 }
 
 message LoginResponse {
