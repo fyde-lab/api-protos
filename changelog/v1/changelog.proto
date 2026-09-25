@@ -1,10 +1,10 @@
 syntax = "proto3";
 
-package changelog;
+package changelog.v1;
 
 // A blind relay for client-encrypted document write events: the server only
 // ever stores and forwards opaque bytes, and cannot read them.
-service Changelog {
+service ChangelogService {
   // Submits a new, already-encrypted event. Returns its assigned id.
   rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse);
 
@@ -12,7 +12,7 @@ service Changelog {
   // persisted history before continuing with new entries as they're
   // recorded (a single call covers both catch-up and live tail). An empty
   // `id` means "from the beginning of the changelog".
-  rpc ConsumeSince(ConsumeSinceRequest) returns (stream ChangelogEvent);
+  rpc ConsumeSince(ConsumeSinceRequest) returns (stream ConsumeSinceResponse);
 }
 
 message RecordEventRequest {
@@ -35,7 +35,7 @@ message ConsumeSinceRequest {
   string id = 1;
 }
 
-message ChangelogEvent {
+message ConsumeSinceResponse {
   // See RecordEventResponse.id.
   string id = 1;
   // See RecordEventRequest.encrypted_content.
