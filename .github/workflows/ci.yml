@@ -22,3 +22,17 @@ jobs:
       - name: buf breaking
         if: github.event_name == 'pull_request'
         run: buf breaking --against 'https://github.com/${{ github.repository }}.git#branch=${{ github.event.pull_request.base.ref }}'
+
+  push:
+    needs: lint
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          buf_token: ${{ secrets.BUF_TOKEN }}
+
+      - name: buf push
+        run: buf push
