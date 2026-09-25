@@ -104,8 +104,15 @@ message LoginFinishRequest {
 message LoginResponse {
   // Opaque session token. The device must present it as a `Bearer` token
   // in the `authorization` metadata of subsequent authenticated calls.
-  // This is the only information the endpoint returns: no user data.
   string session_token = 1;
+  // The user's master key, encrypted client-side under a key derived from
+  // the OPAQUE export key (see `RegistrationFinishRequest.encrypted_master_key`).
+  // Opaque to the server: returned as-is, never inspected. Lets a device
+  // that logs into an existing account (as opposed to registering a new
+  // one) recover the same master key `FinishRegistration` originally
+  // persisted, by unwrapping this under the export key its own OPAQUE
+  // login exchange produces.
+  bytes encrypted_master_key = 2;
 }
 
 message LogoutRequest {}
