@@ -48,6 +48,23 @@ service UsersService {
   // call's `authorization` metadata. Fails with UNAUTHENTICATED if it
   // doesn't match an active session.
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+
+  // First step of changing the password of the account behind the current
+  // session: like StartRegistration, but for an account that already
+  // exists. The client sends an OPAQUE registration request derived from
+  // the new password, and the server responds with a registration
+  // response. Requires an active session, identified by the bearer token
+  // carried in the call's `authorization` metadata — the account to change
+  // is derived from that session, not from a username field.
+  rpc StartChangePassword(StartChangePasswordRequest) returns (StartChangePasswordResponse);
+
+  // Second and final step of changing password: the client sends the
+  // OPAQUE registration record derived from the new password, which the
+  // server persists in place of the account's previous record, alongside
+  // the master key re-encrypted client-side under a key derived from the
+  // new password's OPAQUE export key. Requires an active session, same as
+  // StartChangePassword.
+  rpc FinishChangePassword(FinishChangePasswordRequest) returns (FinishChangePasswordResponse);
 }
 
 message StartRegistrationRequest {
@@ -132,3 +149,27 @@ message FinishLoginResponse {
 message LogoutRequest {}
 
 message LogoutResponse {}
+
+message StartChangePasswordRequest {
+  // Serialized OPAQUE `RegistrationRequest` message, derived from the new
+  // password.
+  bytes opaque_request = 1;
+}
+
+message StartChangePasswordResponse {
+  // Serialized OPAQUE `RegistrationResponse` message.
+  bytes opaque_response = 1;
+}
+
+message FinishChangePasswordRequest {
+  // Serialized OPAQUE `RegistrationUpload` message, which the server turns
+  // into the registration record it persists in place of the account's
+  // previous one.
+  bytes opaque_upload = 1;
+  // The user's master key, re-encrypted client-side under a key derived
+  // from the new password's OPAQUE export key. Opaque to the server: only
+  // ever stored and returned as ciphertext, never inspected.
+  bytes encrypted_master_key = 2;
+}
+
+message FinishChangePasswordResponse {}
