@@ -28,6 +28,12 @@ message RecordEventResponse {
   // they were recorded, so clients can rely on id order as chronological
   // order.
   string id = 1;
+  // Canonical string form of the id of the entry immediately preceding this
+  // one *for the same user*, or empty if this is the first entry that user
+  // ever recorded. Lets clients detect a gap in that user's entries (a
+  // previous_id that doesn't match the last entry id they saw for that
+  // user) meaning an entry was skipped.
+  string previous_id = 2;
 }
 
 message ConsumeSinceRequest {
@@ -40,4 +46,6 @@ message ConsumeSinceResponse {
   string id = 1;
   // See RecordEventRequest.encrypted_content.
   bytes encrypted_content = 2;
+  // See RecordEventResponse.previous_id.
+  string previous_id = 3;
 }
