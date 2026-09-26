@@ -91,6 +91,10 @@ message FinishRegistrationRequest {
   // the OPAQUE export key. Opaque to the server: only ever stored and
   // returned as ciphertext, never inspected.
   bytes encrypted_master_key = 4;
+  // The user's preferred interface language (e.g. "en", "fr"), chosen by
+  // the SDK/caller. Not opaque to the server: stored and returned as-is,
+  // unlike the encrypted fields above.
+  string language = 5;
 }
 
 message StartLoginRequest {
