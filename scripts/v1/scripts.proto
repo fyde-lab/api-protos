@@ -21,6 +21,9 @@ service ScriptsService {
   // Disables `script_id` for the authenticated user. Disabling a script
   // that isn't enabled is a no-op.
   rpc DisableScript(DisableScriptRequest) returns (DisableScriptResponse);
+
+  // Lists the scripts currently enabled for the authenticated user.
+  rpc ListUserScripts(ListUserScriptsRequest) returns (ListUserScriptsResponse);
 }
 
 message Script {
@@ -69,3 +72,9 @@ message DisableScriptRequest {
 }
 
 message DisableScriptResponse {}
+
+message ListUserScriptsRequest {}
+
+message ListUserScriptsResponse {
+  repeated Script scripts = 1;
+}
