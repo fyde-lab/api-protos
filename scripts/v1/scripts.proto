@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package scripts.v1;
+
+// Manages user-authored scripts: creating them, fetching them by id, and
+// enabling/disabling them for the authenticated user. Unlike Documents,
+// script content is not treated as an opaque encrypted blob by the server —
+// scripts can be marked public and shared between users.
+service ScriptsService {
+  // Creates a new script owned by the authenticated user, at version 1.
+  rpc CreateScript(CreateScriptRequest) returns (CreateScriptResponse);
+
+  // Fetches the script matching `id`. Fails with NOT_FOUND if it doesn't
+  // exist.
+  rpc FetchScript(FetchScriptRequest) returns (FetchScriptResponse);
+
+  // Enables `script_id` for the authenticated user. Enabling an
+  // already-enabled script is a no-op.
+  rpc EnableScript(EnableScriptRequest) returns (EnableScriptResponse);
+
+  // Disables `script_id` for the authenticated user. Disabling a script
+  // that isn't enabled is a no-op.
+  rpc DisableScript(DisableScriptRequest) returns (DisableScriptResponse);
+}
+
+message Script {
+  // Canonical string form of a UUIDv7, assigned by the server.
+  string id = 1;
+  string name = 2;
+  bool is_public = 3;
+  // Optional icon image, opaque to the server.
+  bytes icon = 4;
+  uint64 version = 5;
+  string script = 6;
+  // Unix timestamp, in seconds, of the last time this script was updated.
+  int64 last_updated = 7;
+}
+
+message CreateScriptRequest {
+  string name = 1;
+  bool is_public = 2;
+  bytes icon = 3;
+  string script = 4;
+}
+
+message CreateScriptResponse {
+  Script script = 1;
+}
+
+message FetchScriptRequest {
+  // Canonical string form of a UUIDv7.
+  string id = 1;
+}
+
+message FetchScriptResponse {
+  Script script = 1;
+}
+
+message EnableScriptRequest {
+  // Canonical string form of a UUIDv7.
+  string script_id = 1;
+}
+
+message EnableScriptResponse {}
+
+message DisableScriptRequest {
+  // Canonical string form of a UUIDv7.
+  string script_id = 1;
+}
+
+message DisableScriptResponse {}
