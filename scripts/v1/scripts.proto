@@ -22,6 +22,11 @@ service ScriptsService {
   // that isn't enabled is a no-op.
   rpc DisableScript(DisableScriptRequest) returns (DisableScriptResponse);
 
+  // Updates a script owned by the authenticated user, incrementing its
+  // version. Fails with NOT_FOUND if the script doesn't exist, and
+  // PERMISSION_DENIED if the authenticated user isn't its owner.
+  rpc UpdateScript(UpdateScriptRequest) returns (UpdateScriptResponse);
+
   // Lists the scripts currently enabled for the authenticated user.
   rpc ListUserScripts(ListUserScriptsRequest) returns (ListUserScriptsResponse);
 }
@@ -72,6 +77,19 @@ message DisableScriptRequest {
 }
 
 message DisableScriptResponse {}
+
+message UpdateScriptRequest {
+  // Canonical string form of a UUIDv7.
+  string id = 1;
+  string name = 2;
+  bool is_public = 3;
+  bytes icon = 4;
+  string script = 5;
+}
+
+message UpdateScriptResponse {
+  Script script = 1;
+}
 
 message ListUserScriptsRequest {}
 
