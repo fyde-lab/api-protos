@@ -24,6 +24,10 @@ service ScriptsService {
 
   // Lists the scripts currently enabled for the authenticated user.
   rpc ListUserScripts(ListUserScriptsRequest) returns (ListUserScriptsResponse);
+
+  // Lists every script marked public, regardless of who owns it or whether
+  // the authenticated user has it enabled.
+  rpc ListPublicScripts(ListPublicScriptsRequest) returns (ListPublicScriptsResponse);
 }
 
 message Script {
@@ -76,5 +80,11 @@ message DisableScriptResponse {}
 message ListUserScriptsRequest {}
 
 message ListUserScriptsResponse {
+  repeated Script scripts = 1;
+}
+
+message ListPublicScriptsRequest {}
+
+message ListPublicScriptsResponse {
   repeated Script scripts = 1;
 }
