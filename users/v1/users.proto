@@ -67,6 +67,15 @@ service UsersService {
   rpc FinishChangePassword(FinishChangePasswordRequest) returns (FinishChangePasswordResponse);
 }
 
+// A user account's privilege level. The very first account ever
+// registered on a server is promoted to ROLE_ADMIN; every account after
+// that defaults to ROLE_USER.
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_USER = 1;
+  ROLE_ADMIN = 2;
+}
+
 message StartRegistrationRequest {
   string username = 1;
   // Serialized OPAQUE `RegistrationRequest` message.
@@ -134,6 +143,9 @@ message FinishRegistrationResponse {
   // persisted, by unwrapping this under the export key its own OPAQUE
   // login exchange produces.
   bytes encrypted_master_key = 2;
+  // The newly created account's role. Always ROLE_ADMIN for the very
+  // first account ever registered on the server, ROLE_USER otherwise.
+  Role role = 3;
 }
 
 message FinishLoginResponse {
@@ -148,6 +160,8 @@ message FinishLoginResponse {
   // persisted, by unwrapping this under the export key its own OPAQUE
   // login exchange produces.
   bytes encrypted_master_key = 2;
+  // The authenticated account's role.
+  Role role = 3;
 }
 
 message LogoutRequest {}
