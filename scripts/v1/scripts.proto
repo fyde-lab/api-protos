@@ -46,6 +46,14 @@ message Script {
   string script = 6;
   // Unix timestamp, in seconds, of the last time this script was updated.
   int64 last_updated = 7;
+  // The script's own description, written by its author for display in a
+  // marketplace listing.
+  string description = 8;
+  // A one-line summary, shorter than `description`, for display where
+  // space is limited (e.g. a marketplace list row).
+  string short_description = 9;
+  // A marketplace banner/logo image, distinct from `icon`.
+  bytes logo = 10;
 }
 
 message CreateScriptRequest {
@@ -53,6 +61,9 @@ message CreateScriptRequest {
   bool is_public = 2;
   bytes icon = 3;
   string script = 4;
+  string description = 5;
+  string short_description = 6;
+  bytes logo = 7;
 }
 
 message CreateScriptResponse {
@@ -89,6 +100,9 @@ message UpdateScriptRequest {
   bool is_public = 3;
   bytes icon = 4;
   string script = 5;
+  string description = 6;
+  string short_description = 7;
+  bytes logo = 8;
 }
 
 message UpdateScriptResponse {
