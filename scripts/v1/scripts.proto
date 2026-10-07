@@ -52,8 +52,9 @@ message Script {
   // A one-line summary, shorter than `description`, for display where
   // space is limited (e.g. a marketplace list row).
   string short_description = 9;
-  // A marketplace banner/logo image, distinct from `icon`.
-  bytes logo = 10;
+  // The only hosts (or subdomains of them) this script's HTTP/browser
+  // calls may reach. Empty means unrestricted.
+  repeated string allowed_domains = 11;
 }
 
 message CreateScriptRequest {
@@ -63,7 +64,9 @@ message CreateScriptRequest {
   string script = 4;
   string description = 5;
   string short_description = 6;
-  bytes logo = 7;
+  // The only hosts (or subdomains of them) this script's HTTP/browser
+  // calls may reach. Empty means unrestricted.
+  repeated string allowed_domains = 8;
 }
 
 message CreateScriptResponse {
@@ -102,7 +105,9 @@ message UpdateScriptRequest {
   string script = 5;
   string description = 6;
   string short_description = 7;
-  bytes logo = 8;
+  // The only hosts (or subdomains of them) this script's HTTP/browser
+  // calls may reach. Empty means unrestricted.
+  repeated string allowed_domains = 9;
 }
 
 message UpdateScriptResponse {
