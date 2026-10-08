@@ -35,6 +35,36 @@ service ScriptsService {
   rpc ListPublicScripts(ListPublicScriptsRequest) returns (ListPublicScriptsResponse);
 }
 
+// A single configurable parameter a script declares it needs from the
+// user (e.g. a login username, an API key) before it can run. A script's
+// full set of these is carried as a map on `Script`/`CreateScriptRequest`/
+// `UpdateScriptRequest`, keyed by the parameter's machine name (e.g.
+// "username", "password") as the script itself refers to it.
+message ScriptParameter {
+  // What kind of value this parameter expects, so a client can render the
+  // right form control (text field, number field, toggle) and coerce the
+  // entered value before sending it back to the script.
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_STRING = 1;
+    TYPE_NUMBER = 2;
+    TYPE_BOOLEAN = 3;
+  }
+
+  // Human-readable label for the form control, e.g. "Mot de passe".
+  string label = 1;
+  // Example value shown in the empty form control, e.g. "••••••••".
+  string placeholder = 2;
+  Type type = 3;
+  // Whether the script requires this parameter to be set before it can
+  // run.
+  bool required = 4;
+  // Whether the value is sensitive (e.g. a password) and should be
+  // masked/stored accordingly by the client. Opaque to the server beyond
+  // storage: it never sees the value either way.
+  bool secret = 5;
+}
+
 message Script {
   // Canonical string form of a UUIDv7, assigned by the server.
   string id = 1;
@@ -59,6 +89,9 @@ message Script {
   // fyde-scripts' scrapers/ directory). Opaque to the server beyond
   // storage and filtering.
   string type = 12;
+  // The parameters this script needs from the user before it can run,
+  // keyed by the parameter's machine name.
+  map<string, ScriptParameter> parameters = 13;
 }
 
 message CreateScriptRequest {
@@ -75,6 +108,9 @@ message CreateScriptRequest {
   // fyde-scripts' scrapers/ directory). Opaque to the server beyond
   // storage and filtering.
   string type = 9;
+  // The parameters this script needs from the user before it can run,
+  // keyed by the parameter's machine name.
+  map<string, ScriptParameter> parameters = 10;
 }
 
 message CreateScriptResponse {
@@ -120,6 +156,9 @@ message UpdateScriptRequest {
   // fyde-scripts' scrapers/ directory). Opaque to the server beyond
   // storage and filtering.
   string type = 10;
+  // The parameters this script needs from the user before it can run,
+  // keyed by the parameter's machine name.
+  map<string, ScriptParameter> parameters = 11;
 }
 
 message UpdateScriptResponse {
