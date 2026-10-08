@@ -55,6 +55,10 @@ message Script {
   // The only hosts (or subdomains of them) this script's HTTP/browser
   // calls may reach. Empty means unrestricted.
   repeated string allowed_domains = 11;
+  // What kind of script this is (e.g. "scraper" for every script under
+  // fyde-scripts' scrapers/ directory). Opaque to the server beyond
+  // storage and filtering.
+  string type = 12;
 }
 
 message CreateScriptRequest {
@@ -67,6 +71,10 @@ message CreateScriptRequest {
   // The only hosts (or subdomains of them) this script's HTTP/browser
   // calls may reach. Empty means unrestricted.
   repeated string allowed_domains = 8;
+  // What kind of script this is (e.g. "scraper" for every script under
+  // fyde-scripts' scrapers/ directory). Opaque to the server beyond
+  // storage and filtering.
+  string type = 9;
 }
 
 message CreateScriptResponse {
@@ -108,6 +116,10 @@ message UpdateScriptRequest {
   // The only hosts (or subdomains of them) this script's HTTP/browser
   // calls may reach. Empty means unrestricted.
   repeated string allowed_domains = 9;
+  // What kind of script this is (e.g. "scraper" for every script under
+  // fyde-scripts' scrapers/ directory). Opaque to the server beyond
+  // storage and filtering.
+  string type = 10;
 }
 
 message UpdateScriptResponse {
