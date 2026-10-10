@@ -8,10 +8,11 @@ service ChangelogService {
   // Submits a new, already-encrypted event. Returns its assigned id.
   rpc RecordEvent(RecordEventRequest) returns (RecordEventResponse);
 
-  // Streams every entry recorded from `id` onward, oldest first, replaying
-  // persisted history before continuing with new entries as they're
-  // recorded (a single call covers both catch-up and live tail). An empty
-  // `id` means "from the beginning of the changelog".
+  // Streams every entry recorded after `id` (excluding `id` itself, so a
+  // client can resume from the id of the last entry it processed), oldest
+  // first, replaying persisted history before continuing with new entries
+  // as they're recorded (a single call covers both catch-up and live tail).
+  // An empty `id` means "from the beginning of the changelog".
   rpc ConsumeSince(ConsumeSinceRequest) returns (stream ConsumeSinceResponse);
 }
 
