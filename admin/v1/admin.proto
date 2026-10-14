@@ -1,0 +1,269 @@
+syntax = "proto3";
+
+package admin.v1;
+
+// Server administration: inspecting and managing every account, user,
+// session and script on the server, regardless of who owns it.
+//
+// Kept apart from the public services (`users.v1`, `scripts.v1`,
+// `changelog.v1`) on purpose: every RPC here requires an active session,
+// identified by the bearer token carried in the call's `authorization`
+// metadata, whose user has the ROLE_ADMIN role. A call from any other
+// session fails with PERMISSION_DENIED before reaching its handler, and a
+// call without a valid session with UNAUTHENTICATED.
+//
+// Like every other service, the server never sees anything a client
+// encrypted (document contents, master keys, ...): nothing here can read
+// or return them either.
+service AdminService {
+  // Returns server-wide counters, for an administration dashboard.
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+
+  // Lists users, oldest first, optionally filtered by username.
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+
+  // Fetches one user, with its account, plan and open sessions. Fails with
+  // NOT_FOUND if it doesn't exist.
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+
+  // Changes a user's role. Takes effect on the user's very next call, on
+  // every session it has open. Fails with NOT_FOUND if the user doesn't
+  // exist, and FAILED_PRECONDITION when targeting the calling admin itself
+  // (so an admin can never lock itself out).
+  rpc SetUserRole(SetUserRoleRequest) returns (SetUserRoleResponse);
+
+  // Deletes a user and everything it owns on the server: its sessions, its
+  // changelog entries, its scripts (disabled for every user that had them
+  // enabled), and its account once no other user belongs to it. Fails with
+  // NOT_FOUND if the user doesn't exist, and FAILED_PRECONDITION when
+  // targeting the calling admin itself.
+  rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse);
+
+  // Lists every plan an account can be on.
+  rpc ListPlans(ListPlansRequest) returns (ListPlansResponse);
+
+  // Moves an account to another plan. Its quotas change immediately; what
+  // it already stores is kept even if it's over the new plan's limits,
+  // which then only block further writes. Fails with NOT_FOUND if the
+  // account or the plan doesn't exist.
+  rpc SetAccountPlan(SetAccountPlanRequest) returns (SetAccountPlanResponse);
+
+  // Closes one session. Its device finds out on its next call
+  // (UNAUTHENTICATED). Fails with NOT_FOUND if it doesn't exist.
+  rpc RevokeSession(RevokeSessionRequest) returns (RevokeSessionResponse);
+
+  // Closes every session of a user, logging it out of every device. Fails
+  // with NOT_FOUND if the user doesn't exist.
+  rpc RevokeUserSessions(RevokeUserSessionsRequest) returns (RevokeUserSessionsResponse);
+
+  // Lists every script, public or not, most recently updated first.
+  rpc ListScripts(ListScriptsRequest) returns (ListScriptsResponse);
+
+  // Publishes or unpublishes a script, whoever owns it, without changing
+  // its version. Fails with NOT_FOUND if it doesn't exist.
+  rpc SetScriptVisibility(SetScriptVisibilityRequest) returns (SetScriptVisibilityResponse);
+
+  // Deletes a script, whoever owns it, disabling it for every user that had
+  // it enabled. Fails with NOT_FOUND if it doesn't exist.
+  rpc DeleteScript(DeleteScriptRequest) returns (DeleteScriptResponse);
+}
+
+// A user's privilege level. Mirrors `users.v1.Role`, redeclared here so
+// this package stands on its own.
+enum UserRole {
+  USER_ROLE_UNSPECIFIED = 0;
+  USER_ROLE_USER = 1;
+  USER_ROLE_ADMIN = 2;
+}
+
+// Pagination shared by every listing below.
+message Page {
+  // How many items to skip.
+  uint64 offset = 1;
+  // How many items to return at most, from 1 to 100.
+  uint32 limit = 2;
+}
+
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  uint64 user_count = 1;
+  uint64 admin_count = 2;
+  uint64 account_count = 3;
+  uint64 open_session_count = 4;
+  uint64 script_count = 5;
+  uint64 public_script_count = 6;
+  uint64 changelog_entry_count = 7;
+  // Total size, in bytes, of everything stored by every account.
+  uint64 total_size = 8;
+}
+
+// A user, as listed to an admin. Never carries anything secret (OPAQUE
+// record, encrypted master key).
+message User {
+  // Canonical string form of a UUID.
+  string id = 1;
+  string username = 2;
+  UserRole role = 3;
+  // The user's preferred interface language, e.g. "en", "fr".
+  string language = 4;
+  // Unix timestamp, in seconds, of when the user registered.
+  int64 created_at = 5;
+  // Total size, in bytes, of every changelog entry the user recorded.
+  uint64 total_size = 6;
+  // Canonical string form of the UUID of the account the user belongs to.
+  string account_id = 7;
+  // The id of the plan that account is on, e.g. "free".
+  string plan_id = 8;
+}
+
+message Account {
+  // Canonical string form of a UUID.
+  string id = 1;
+  string plan_id = 2;
+  // Total size, in bytes, of everything stored by the account's users.
+  uint64 total_size = 3;
+  // Unix timestamp, in seconds, of when the account was created.
+  int64 created_at = 4;
+  // Canonical string form of the UUID of the user owning the account.
+  string principal_user_id = 5;
+}
+
+message Plan {
+  // A stable, human-readable identifier, e.g. "free", "basic".
+  string id = 1;
+  uint32 max_users = 2;
+  // Scripts an account may have enabled at once, across its users.
+  uint32 max_scripts = 3;
+  // Sessions an account may have open at once, across its users.
+  uint32 max_sessions = 4;
+  // Bytes an account may store, across its users.
+  uint64 max_size = 5;
+}
+
+// An open session (a device logged into an account). Never carries the
+// session's token.
+message Session {
+  // Canonical string form of a UUID.
+  string id = 1;
+  // Canonical string form of the UUID of the session's user.
+  string user_id = 2;
+  // Human-readable name of the device, as given when the session was opened.
+  string device_name = 3;
+  // Unix timestamp, in seconds, of when the session was opened.
+  int64 created_at = 4;
+}
+
+// A script, as listed to an admin: everything but its source and icon,
+// which `scripts.v1.ScriptsService/FetchScript` returns.
+message Script {
+  // Canonical string form of a UUID.
+  string id = 1;
+  // Canonical string form of the UUID of the user owning the script.
+  string owner_user_id = 2;
+  string name = 3;
+  string short_description = 4;
+  bool is_public = 5;
+  // e.g. "parser", "scraper".
+  string type = 6;
+  uint64 version = 7;
+  // Unix timestamp, in seconds, of the last time the script was updated.
+  int64 last_updated = 8;
+}
+
+message ListUsersRequest {
+  Page page = 1;
+  // Optional. Only lists users whose username contains this, ignoring case.
+  string username_contains = 2;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  // How many users match the request in total, across every page.
+  uint64 total = 2;
+}
+
+message GetUserRequest {
+  // Canonical string form of a UUID.
+  string user_id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+  Account account = 2;
+  Plan plan = 3;
+  // The user's open sessions, oldest first.
+  repeated Session sessions = 4;
+}
+
+message SetUserRoleRequest {
+  // Canonical string form of a UUID.
+  string user_id = 1;
+  // USER_ROLE_UNSPECIFIED is rejected with INVALID_ARGUMENT.
+  UserRole role = 2;
+}
+
+message SetUserRoleResponse {}
+
+message DeleteUserRequest {
+  // Canonical string form of a UUID.
+  string user_id = 1;
+}
+
+message DeleteUserResponse {}
+
+message ListPlansRequest {}
+
+message ListPlansResponse {
+  repeated Plan plans = 1;
+}
+
+message SetAccountPlanRequest {
+  // Canonical string form of a UUID.
+  string account_id = 1;
+  string plan_id = 2;
+}
+
+message SetAccountPlanResponse {}
+
+message RevokeSessionRequest {
+  // Canonical string form of a UUID.
+  string session_id = 1;
+}
+
+message RevokeSessionResponse {}
+
+message RevokeUserSessionsRequest {
+  // Canonical string form of a UUID.
+  string user_id = 1;
+}
+
+message RevokeUserSessionsResponse {
+  // How many sessions were closed.
+  uint64 revoked = 1;
+}
+
+message ListScriptsRequest {
+  Page page = 1;
+}
+
+message ListScriptsResponse {
+  repeated Script scripts = 1;
+  // How many scripts exist in total, across every page.
+  uint64 total = 2;
+}
+
+message SetScriptVisibilityRequest {
+  // Canonical string form of a UUID.
+  string script_id = 1;
+  bool is_public = 2;
+}
+
+message SetScriptVisibilityResponse {}
+
+message DeleteScriptRequest {
+  // Canonical string form of a UUID.
+  string script_id = 1;
+}
+
+message DeleteScriptResponse {}
