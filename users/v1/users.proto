@@ -42,6 +42,15 @@ service UsersService {
   // device named `device_name` if it checks out. Fails with UNAUTHENTICATED
   // if the credentials are invalid or `login_id` is unknown (e.g. already
   // used, or `StartLogin` was never called).
+  //
+  // Each account's plan bounds how many sessions it may have open at once.
+  // If the credentials check out but the account is already at that limit,
+  // no session is opened and the response carries `session_limit_reached`
+  // instead, listing the account's open sessions. To log in anyway, the
+  // client picks one of them and runs the whole login again (`StartLogin`
+  // then `FinishLogin`, since `login_id` is single-use) with
+  // `replace_session_id` set to it: the server closes that session and opens
+  // the new one in its place, atomically.
   rpc FinishLogin(FinishLoginRequest) returns (FinishLoginResponse);
 
   // Closes the session identified by the bearer token carried in the
@@ -129,6 +138,11 @@ message FinishLoginRequest {
   // Human-readable name of the device opening the session, chosen by the
   // SDK/caller.
   string device_name = 3;
+  // Optional. The `id` of one of the account's open sessions (as listed by
+  // a previous `session_limit_reached` response) to close in favor of the
+  // new one. Fails with NOT_FOUND if it doesn't name an open session of the
+  // authenticated account. Leave empty for a regular login.
+  string replace_session_id = 4;
 }
 
 message FinishRegistrationResponse {
@@ -149,6 +163,17 @@ message FinishRegistrationResponse {
 }
 
 message FinishLoginResponse {
+  oneof result {
+    // The credentials checked out and a new session was opened.
+    LoginSucceeded succeeded = 1;
+    // The credentials checked out, but the account already has as many
+    // open sessions as its plan allows: no session was opened (and none was
+    // closed, even if `replace_session_id` was set).
+    SessionLimitReached session_limit_reached = 2;
+  }
+}
+
+message LoginSucceeded {
   // Opaque session token. The device must present it as a `Bearer` token
   // in the `authorization` metadata of subsequent authenticated calls.
   string session_token = 1;
@@ -162,6 +187,25 @@ message FinishLoginResponse {
   bytes encrypted_master_key = 2;
   // The authenticated account's role.
   Role role = 3;
+}
+
+message SessionLimitReached {
+  // The most sessions the account's plan allows it to have open at once.
+  uint32 max_sessions = 1;
+  // Every session the account currently has open, oldest first. Pass one's
+  // `id` as `FinishLoginRequest.replace_session_id` to close it in favor of
+  // the new one.
+  repeated SessionInfo sessions = 2;
+}
+
+// A session (a device logged into an account), as listed to the account's
+// own user. Never carries the session's token.
+message SessionInfo {
+  string id = 1;
+  // Human-readable name of the device, as given when the session was opened.
+  string device_name = 2;
+  // Unix timestamp, in seconds, of when the session was opened.
+  int64 created_at = 3;
 }
 
 message LogoutRequest {}
